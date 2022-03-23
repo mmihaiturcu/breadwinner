@@ -1,0 +1,13 @@
+{
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "node-seal": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.23"
+    }
+}
