@@ -1,14 +1,11 @@
-import {
-	ChunkToProcess,
-	Operations,
-	PayloadToProcess,
-	WebsocketEventTypes,
-} from "breadwinner";
+import { ChunkToProcess, PayloadToProcess } from "..";
 import { CipherText } from "node-seal/implementation/cipher-text";
 import { PlainText } from "node-seal/implementation/plain-text";
 import { REWARD_TIMEOUT_MS } from "./constants.js";
 import FHEModule from "./FHEModule.js";
+import { Operations } from "./Operations.js";
 import { add, subtract, multiply, exponentiate } from "./OperationsCalculator";
+import { WebsocketEventTypes } from "./WebsocketEventTypes.js";
 
 class BreadwinnerModule {
 	public static instance: BreadwinnerModule;
