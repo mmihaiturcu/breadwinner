@@ -1,4 +1,4 @@
-import { ChunkToProcess, PayloadToProcess } from "..";
+import { ChunkToProcess, PayloadMessage, PayloadToProcess } from "..";
 import { CipherText } from "node-seal/implementation/cipher-text";
 import { PlainText } from "node-seal/implementation/plain-text";
 import { REWARD_TIMEOUT_MS } from "./constants.js";
@@ -12,6 +12,7 @@ class BreadwinnerModule {
 	private apiKey?: string;
 	private websocketConnection?: WebSocket;
 	private timeoutHandle?: ReturnType<typeof setTimeout>;
+	private payloadToken?: string;
 
 	public static getInstance(): BreadwinnerModule {
 		if (!this.instance) {
@@ -167,7 +168,7 @@ class BreadwinnerModule {
 
 	private async processPayload(event: MessageEvent<string>) {
 		if (event.data) {
-			const payload = JSON.parse(event.data) as PayloadToProcess;
+			const { payload, token } = JSON.parse(event.data) as PayloadMessage;
 			const chunkToProcess = payload.chunk;
 
 			console.log("Received payload to process", payload);
@@ -185,6 +186,7 @@ class BreadwinnerModule {
 					data: {
 						chunkId: chunkToProcess.id,
 						result,
+						token,
 					},
 				})
 			);

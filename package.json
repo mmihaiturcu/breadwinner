@@ -3,13 +3,12 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"build": "tsc && copyfiles --flat src/index.d.ts dist"
+		"build": "tsc"
 	},
 	"dependencies": {
 		"node-seal": "^5.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^17.0.23",
-		"copyfiles": "^2.4.1"
+		"@types/node": "^17.0.23"
 	}
 }

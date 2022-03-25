@@ -62,6 +62,11 @@ export interface PayloadToProcess {
 	relinKeys?: string;
 }
 
+export interface PayloadMessage {
+	payload: PayloadToProcess;
+	token: string;
+}
+
 export interface KeyPair {
 	publicKey: string;
 	privateKey: string;
