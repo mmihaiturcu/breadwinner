@@ -55,7 +55,7 @@ export interface JSONSchema {
 
 export interface PayloadToProcess {
 	id: number;
-	jsonSchema: JSONSchema;
+	jsonSchema: string;
 	chunk: ChunkToProcess;
 	publicKey: string;
 	galoisKeys?: string;

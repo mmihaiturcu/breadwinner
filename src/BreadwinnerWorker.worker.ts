@@ -1,4 +1,9 @@
-import { ChunkToProcess, PayloadMessage, PayloadToProcess } from "..";
+import {
+	ChunkToProcess,
+	JSONSchema,
+	PayloadMessage,
+	PayloadToProcess,
+} from "..";
 import { CipherText } from "node-seal/implementation/cipher-text";
 import { PlainText } from "node-seal/implementation/plain-text";
 import { REWARD_TIMEOUT_MS } from "./constants.js";
@@ -56,7 +61,9 @@ class BreadwinnerWorker {
 			dataObject.set(`d${field}`, cipherText);
 		});
 
-		payload.jsonSchema.operations.forEach((operation, operationIndex) => {
+		const parsedJSONSchema = JSON.parse(payload.jsonSchema) as JSONSchema;
+
+		parsedJSONSchema.operations.forEach((operation, operationIndex) => {
 			operation.operands.forEach((operand) => {
 				if ("plaintextValue" in operand && !("isRaw" in operand)) {
 					const plainText = FHEModule.batchEncoder!.encode(
@@ -87,7 +94,7 @@ class BreadwinnerWorker {
 			for (const [
 				index,
 				operation,
-			] of payload.jsonSchema.operations.entries()) {
+			] of parsedJSONSchema.operations.entries()) {
 				switch (operation.name) {
 					case Operations.ADD: {
 						dataObject.set(
@@ -151,7 +158,7 @@ class BreadwinnerWorker {
 		}
 
 		const result = dataObject
-			.get(payload.jsonSchema.operations.length - 1)!
+			.get(parsedJSONSchema.operations.length - 1)!
 			.save();
 
 		// Perform cleanup, deallocating any memory.
