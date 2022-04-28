@@ -41,8 +41,7 @@ export class FHEModule {
 
 	async initFHEContext(): Promise<void> {
 		const seal = await SEAL();
-		seal.SchemeType.bfv;
-		const schemeType = seal.SchemeType.bfv;
+		const schemeType = seal.SchemeType.bgv;
 		const securityLevel = seal.SecurityLevel.tc128;
 		const polyModulusDegree = 8192;
 		// const bitSizes = [36, 36, 37];
@@ -53,7 +52,7 @@ export class FHEModule {
 		// Set the PolyModulusDegree
 		encParms.setPolyModulusDegree(polyModulusDegree);
 
-		// Create a suitable set of CoeffModulus primes
+		// Create a suitable set of CoeffModulus primes (works for BGV too)
 		encParms.setCoeffModulus(
 			seal.CoeffModulus.BFVDefault(polyModulusDegree)
 		);
@@ -82,7 +81,7 @@ export class FHEModule {
 
 		this.seal = seal;
 		this.context = context;
-		// Create a BatchEncoder (only BFV SchemeType)
+		// Create a BatchEncoder (only BGV SchemeType)
 		this.batchEncoder = this.seal.BatchEncoder(this.context);
 		this.keyGenerator = this.seal.KeyGenerator(this.context);
 	}
