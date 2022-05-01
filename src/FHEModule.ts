@@ -62,10 +62,6 @@ export class FHEModule {
 			seal.PlainModulus.Batching(polyModulusDegree, bitSize)
 		);
 
-		////////////////////////
-		// Context
-		////////////////////////
-
 		// Create a new Context
 		const context = seal.Context(
 			encParms, // Encryption Parameters
@@ -81,7 +77,7 @@ export class FHEModule {
 
 		this.seal = seal;
 		this.context = context;
-		// Create a BatchEncoder (only BGV SchemeType)
+		// Create a BatchEncoder (only BGV SchemeType), switch to CKKSEncoder instead for the CKKS scheme.
 		this.batchEncoder = this.seal.BatchEncoder(this.context);
 		this.keyGenerator = this.seal.KeyGenerator(this.context);
 	}
@@ -90,56 +86,10 @@ export class FHEModule {
 		privateKey: string;
 	} {
 		if (this.seal && this.context && this.keyGenerator) {
-			////////////////////////
-			// Keys
-			////////////////////////
-
 			this.privateKey = this.keyGenerator.secretKey();
 			this.publicKey = this.keyGenerator.createPublicKey();
 			this.initializeEncryptor();
 			this.initializeDecryptor();
-
-			// const relinKey = keyGenerator.createRelinKeys();
-			// // Generating Galois keys takes a while compared to the others
-			// const galoisKey = keyGenerator.createGaloisKeys();
-
-			// Saving a key to a string is the same for each type of key
-			// const secretBase64Key = secretKey.save();
-			// const publicBase64Key = publicKey.save();
-			// const relinBase64Key = relinKey.save();
-			// // Please note saving Galois keys can take an even longer time and the output is **very** large.
-			// const galoisBase64Key = galoisKey.save();
-
-			// Loading a key from a base64 string is the same for each type of key
-			// Load from the base64 encoded string
-			// const UploadedSecretKey = seal.SecretKey();
-			// UploadedSecretKey.load(context, secretBase64Key);
-
-			// NOTE
-			//
-			// A KeyGenerator can also be instantiated with existing keys. This allows you to generate
-			// new Relin/Galois keys with a previously generated SecretKey.
-
-			// // Uploading a SecretKey: first, create an Empty SecretKey to load
-			// const UploadedSecretKey = seal.SecretKey()
-
-			// // Load from the base64 encoded string
-			// UploadedSecretKey.load(context, secretBase64Key)
-
-			// // Create a new KeyGenerator (use uploaded secretKey)
-			// const keyGenerator = seal.KeyGenerator(context, UploadedSecretKey)
-
-			// // Similarly, you may also create a KeyGenerator with a PublicKey. However, the benefit is purley to
-			// // save time by not generating a new PublicKey
-
-			// // Uploading a PublicKey: first, create an Empty PublicKey to load
-			// const UploadedPublicKey = seal.PublicKey()
-
-			// // Load from the base64 encoded string
-			// UploadedPublicKey.load(context, publicBase64Key)
-
-			// // Create a new KeyGenerator (use both uploaded keys)
-			// const keyGenerator = seal.KeyGenerator(context, UploadedSecretKey, UploadedPublicKey)
 
 			return {
 				publicKey: this.publicKey.save(),
@@ -156,47 +106,6 @@ export class FHEModule {
 			////////////////////////
 
 			this.galoisKeys = this.keyGenerator.createGaloisKeys();
-			// const relinKey = keyGenerator.createRelinKeys();
-			// // Generating Galois keys takes a while compared to the others
-			// const galoisKey = keyGenerator.createGaloisKeys();
-
-			// Saving a key to a string is the same for each type of key
-			// const secretBase64Key = secretKey.save();
-			// const publicBase64Key = publicKey.save();
-			// const relinBase64Key = relinKey.save();
-			// // Please note saving Galois keys can take an even longer time and the output is **very** large.
-			// const galoisBase64Key = galoisKey.save();
-
-			// Loading a key from a base64 string is the same for each type of key
-			// Load from the base64 encoded string
-			// const UploadedSecretKey = seal.SecretKey();
-			// UploadedSecretKey.load(context, secretBase64Key);
-
-			// NOTE
-			//
-			// A KeyGenerator can also be instantiated with existing keys. This allows you to generate
-			// new Relin/Galois keys with a previously generated SecretKey.
-
-			// // Uploading a SecretKey: first, create an Empty SecretKey to load
-			// const UploadedSecretKey = seal.SecretKey()
-
-			// // Load from the base64 encoded string
-			// UploadedSecretKey.load(context, secretBase64Key)
-
-			// // Create a new KeyGenerator (use uploaded secretKey)
-			// const keyGenerator = seal.KeyGenerator(context, UploadedSecretKey)
-
-			// // Similarly, you may also create a KeyGenerator with a PublicKey. However, the benefit is purley to
-			// // save time by not generating a new PublicKey
-
-			// // Uploading a PublicKey: first, create an Empty PublicKey to load
-			// const UploadedPublicKey = seal.PublicKey()
-
-			// // Load from the base64 encoded string
-			// UploadedPublicKey.load(context, publicBase64Key)
-
-			// // Create a new KeyGenerator (use both uploaded keys)
-			// const keyGenerator = seal.KeyGenerator(context, UploadedSecretKey, UploadedPublicKey)
 
 			return this.galoisKeys.save();
 		} else {
@@ -235,25 +144,6 @@ export class FHEModule {
 				Int32Array.from(data) // This could also be a Uint32Array
 			);
 
-			// An encryptor and decryptor also accept a cihperText and plainText
-			// optional parameter. If not provided, an encryptor will
-			// return a new cipherText and a decryptor will return a new plainText.
-			// If the optional parameter is specified, it will be modified and both
-			// methods will return void.
-			// Ex:
-			//
-			// // Create a plainText
-			// const cipherTextA = seal.CipherText()
-			//
-			// //... some time later ...
-			//
-			// encryptor.encrypt(
-			//   plainTextA,
-			//   cipherTextA
-			// )
-			//
-			// ... cipherTextA contains the encrypted plainText parameter
-			//
 			if (plainTextA) {
 				// Encrypt a PlainText
 				const cipherTextA = this.encryptor.encrypt(plainTextA);
