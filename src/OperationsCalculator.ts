@@ -21,7 +21,7 @@ export function add(
 		return evaluator.sumElements(
 			operands[0].data as CipherText,
 			galoisKeys,
-			FHEModule.seal!.SchemeType.bgv
+			FHEModule.getSealSchemeType()
 		)!;
 	} else if (operands.length === 2) {
 		if (

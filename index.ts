@@ -9,6 +9,10 @@ import { PlainText } from "node-seal/implementation/plain-text";
 import { OperandTypes } from "./src/OperandTypes";
 import { Operations } from "./src/Operations";
 
+export enum SchemeType {
+	BGV = "BGV",
+	CKKS = "CKKS",
+}
 export interface ChunkToProcess {
 	id: number;
 	length: number;
@@ -50,6 +54,7 @@ export interface OperationDTO {
 
 export interface JSONSchema {
 	totalDataLength: number;
+	schemeType: SchemeType;
 	operations: OperationDTO[];
 }
 

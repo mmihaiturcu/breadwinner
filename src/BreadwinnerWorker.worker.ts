@@ -44,10 +44,13 @@ class BreadwinnerWorker {
 		console.log("closed", event);
 	}
 
-	private processChunk(
+	private async processChunk(
 		chunk: ChunkToProcess,
 		payload: PayloadToProcess
-	): string {
+	): Promise<string> {
+		const parsedJSONSchema = JSON.parse(payload.jsonSchema) as JSONSchema;
+		await FHEModule.initFHEContext(parsedJSONSchema.schemeType);
+		FHEModule.setPublicKey(payload.publicKey);
 		console.log(chunk, payload);
 		const dataObject = new Map<string | number, CipherText | PlainText>();
 		const columnsData = JSON.parse(chunk.columnsData) as Record<
@@ -61,16 +64,12 @@ class BreadwinnerWorker {
 			dataObject.set(`d${field}`, cipherText);
 		});
 
-		const parsedJSONSchema = JSON.parse(payload.jsonSchema) as JSONSchema;
-
 		parsedJSONSchema.operations.forEach((operation, operationIndex) => {
 			operation.operands.forEach((operand) => {
 				if ("plaintextValue" in operand && !("isRaw" in operand)) {
-					const plainText = FHEModule.batchEncoder!.encode(
-						Int32Array.from(
-							new Array(chunk.length).fill(operand.plaintextValue)
-						)
-					)!;
+					const plainText = FHEModule.encode(
+						new Array(chunk.length).fill(operand.plaintextValue)
+					);
 					dataObject.set(`p${operationIndex}`, plainText);
 				}
 			});
@@ -178,10 +177,7 @@ class BreadwinnerWorker {
 
 			console.log("Received payload to process", payload);
 
-			await FHEModule.initFHEContext();
-			FHEModule.setPublicKey(payload.publicKey);
-
-			const result = this.processChunk(chunkToProcess, payload);
+			const result = await this.processChunk(chunkToProcess, payload);
 
 			console.log("processing result", result);
 

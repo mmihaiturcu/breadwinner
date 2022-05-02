@@ -11,13 +11,16 @@ import { GaloisKeys } from "node-seal/implementation/galois-keys";
 import { Encryptor } from "node-seal/implementation/encryptor";
 import { Decryptor } from "node-seal/implementation/decryptor";
 import { RelinKeys } from "node-seal/implementation/relin-keys";
-import { KeyPair } from "..";
+import { KeyPair, SchemeType } from "..";
+import { CKKSEncoder } from "node-seal/implementation/ckks-encoder";
+import { PlainText } from "node-seal/implementation/plain-text";
 
 export class FHEModule {
 	public static instance: FHEModule;
 	public seal: null | SEALLibrary;
 	public context: null | Context;
-	public batchEncoder: null | BatchEncoder;
+	public schemeType: null | SchemeType;
+	public encoder: null | BatchEncoder | CKKSEncoder;
 	public encryptor: null | Encryptor;
 	public decryptor: null | Decryptor;
 	public keyGenerator: null | KeyGenerator;
@@ -29,7 +32,8 @@ export class FHEModule {
 	private constructor() {
 		this.seal = null;
 		this.context = null;
-		this.batchEncoder = null;
+		this.schemeType = null;
+		this.encoder = null;
 		this.encryptor = null;
 		this.decryptor = null;
 		this.keyGenerator = null;
@@ -39,48 +43,62 @@ export class FHEModule {
 		this.relinKeys = null;
 	}
 
-	async initFHEContext(): Promise<void> {
-		const seal = await SEAL();
-		const schemeType = seal.SchemeType.bgv;
-		const securityLevel = seal.SecurityLevel.tc128;
+	async initFHEContext(schemeType: SchemeType): Promise<void> {
+		this.seal = await SEAL();
+		this.schemeType = schemeType;
+		const securityLevel = this.seal.SecurityLevel.tc128;
 		const polyModulusDegree = 8192;
-		// const bitSizes = [36, 36, 37];
-		const bitSize = 40; // Controls the max number that we can work with / encrypt.
 
-		const encParms = seal.EncryptionParameters(schemeType);
+		const encParms = this.seal.EncryptionParameters(
+			this.getSealSchemeType()
+		);
 
 		// Set the PolyModulusDegree
 		encParms.setPolyModulusDegree(polyModulusDegree);
 
 		// Create a suitable set of CoeffModulus primes (works for BGV too)
 		encParms.setCoeffModulus(
-			seal.CoeffModulus.BFVDefault(polyModulusDegree)
+			this.seal.CoeffModulus.BFVDefault(polyModulusDegree)
 		);
 
-		// Set the PlainModulus to a prime of bitSize 20.
-		encParms.setPlainModulus(
-			seal.PlainModulus.Batching(polyModulusDegree, bitSize)
-		);
+		if (schemeType === SchemeType.BGV) {
+			// const bitSizes = [36, 36, 37];
+			const bitSize = 40; // Controls the max number that we can work with / encrypt.
+			encParms.setPlainModulus(
+				this.seal.PlainModulus.Batching(polyModulusDegree, bitSize)
+			);
+		}
 
 		// Create a new Context
-		const context = seal.Context(
+		this.context = this.seal.Context(
 			encParms, // Encryption Parameters
 			true, // ExpandModChain
 			securityLevel // Enforce a security level
 		);
 
-		if (!context.parametersSet()) {
+		if (!this.context.parametersSet()) {
 			throw new Error(
 				"Could not set the parameters in the given context. Please try different encryption parameters."
 			);
 		}
-
-		this.seal = seal;
-		this.context = context;
 		// Create a BatchEncoder (only BGV SchemeType), switch to CKKSEncoder instead for the CKKS scheme.
-		this.batchEncoder = this.seal.BatchEncoder(this.context);
+		this.encoder =
+			schemeType === SchemeType.BGV
+				? this.seal.BatchEncoder(this.context)
+				: this.seal.CKKSEncoder(this.context);
 		this.keyGenerator = this.seal.KeyGenerator(this.context);
 	}
+
+	getSealSchemeType() {
+		if (this.seal && this.schemeType) {
+			return this.schemeType === SchemeType.BGV
+				? this.seal.SchemeType.bgv
+				: this.seal.SchemeType.ckks;
+		} else {
+			throw new Error("FHE Module has not been initialized.");
+		}
+	}
+
 	generateKeys(): {
 		publicKey: string;
 		privateKey: string;
@@ -128,8 +146,34 @@ export class FHEModule {
 			throw new Error("FHE Module has not been initialized.");
 		}
 	}
+	private encodeBGV(data: number[]): PlainText {
+		if (this.encoder) {
+			return (this.encoder as BatchEncoder).encode(
+				Int32Array.from(data)
+			)!;
+		} else {
+			throw new Error("FHE Module has not been initialized.");
+		}
+	}
+	private encodeCKKS(data: number[]): PlainText {
+		if (this.encoder) {
+			return (this.encoder as CKKSEncoder).encode(
+				Float64Array.from(data), // This could also be a Uint32Array,
+				Math.pow(2, 20)
+			)!;
+		} else {
+			throw new Error("FHE Module has not been initialized.");
+		}
+	}
+	encode(data: number[]): PlainText {
+		if (this.seal && this.context && this.schemeType) {
+			return this[`encode${this.schemeType}`](data);
+		} else {
+			throw new Error("FHE Module has not been initialized.");
+		}
+	}
 	encryptData(data: number[]): string {
-		if (this.seal && this.context && this.batchEncoder && this.encryptor) {
+		if (this.seal && this.context && this.encoder && this.encryptor) {
 			////////////////////////
 			// Instances
 			////////////////////////
@@ -140,9 +184,7 @@ export class FHEModule {
 			// Create a Decryptor to decrypt CipherTexts
 
 			// Encode data to a PlainText
-			const plainTextA = this.batchEncoder.encode(
-				Int32Array.from(data) // This could also be a Uint32Array
-			);
+			const plainTextA = this.encode(data);
 
 			if (plainTextA) {
 				// Encrypt a PlainText
@@ -162,8 +204,10 @@ export class FHEModule {
 			throw new Error("FHE Module has not been initialized.");
 		}
 	}
-	decryptData(encryptedData: CipherText): Int32Array | Uint32Array {
-		if (this.seal && this.context && this.decryptor && this.batchEncoder) {
+	decryptData(
+		encryptedData: CipherText
+	): Int32Array | Uint32Array | Float64Array {
+		if (this.seal && this.context && this.decryptor && this.encoder) {
 			// Decrypt a CipherText
 			const plainTextD = this.decryptor.decrypt(encryptedData);
 
@@ -171,10 +215,7 @@ export class FHEModule {
 				// `signed` defaults to 'true' if not specified and will return an Int32Array.
 				// If you have encrypted a Uint32Array and wish to decrypt it, set
 				// this to false.
-				const decoded = this.batchEncoder.decode(
-					plainTextD,
-					true // Can be omitted since this defaults to true.
-				);
+				const decoded = this.encoder.decode(plainTextD);
 				plainTextD.delete();
 				return decoded;
 			} else {
@@ -218,7 +259,7 @@ export class FHEModule {
 
 	deallocate() {
 		this.context?.delete();
-		this.batchEncoder?.delete();
+		this.encoder?.delete();
 		this.encryptor?.delete();
 		this.decryptor?.delete();
 		this.keyGenerator?.delete();
