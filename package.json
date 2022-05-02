@@ -3,12 +3,13 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"build": "tsc"
+		"build": "rimraf dist && tsc"
 	},
 	"dependencies": {
 		"node-seal": "^5.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^17.0.23"
+		"@types/node": "^17.0.23",
+		"rimraf": "^3.0.2"
 	}
 }
