@@ -1,5 +1,5 @@
 class BreadwinnerModule {
-	public static instance: BreadwinnerModule;
+	private static instance: BreadwinnerModule;
 	private worker?: Worker;
 
 	public static getInstance(): BreadwinnerModule {

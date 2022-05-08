@@ -201,7 +201,7 @@ class BreadwinnerWorker {
 			"wss://localhost:8420",
 			this.apiKey
 		);
-		this.websocketConnection.onmessage = (event: MessageEvent<string>) =>
+		this.websocketConnection.onmessage = (event) =>
 			this.processPayload(event);
 		this.websocketConnection.onerror = (event) =>
 			this.onWebsocketError(event);
