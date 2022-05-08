@@ -136,7 +136,8 @@ class BreadwinnerWorker {
 						);
 						break;
 					}
-					case OperationType.MULTIPLY: {
+					case OperationType.MULTIPLY:
+					case OperationType.DIVIDE: {
 						operandsAndResultsMap.set(
 							index,
 							multiply(
