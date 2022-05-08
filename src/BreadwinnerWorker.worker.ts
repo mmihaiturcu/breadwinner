@@ -48,11 +48,19 @@ class BreadwinnerWorker {
 		chunk: ChunkToProcess,
 		payload: PayloadToProcess
 	): Promise<string> {
+		// 1. Parse operations pipeline schema.
 		const parsedJSONSchema = JSON.parse(payload.jsonSchema) as JSONSchema;
+
+		// 2. Initialize FHE module and load public key.
 		await FHEModule.initFHEContext(parsedJSONSchema.schemeType);
 		FHEModule.setPublicKey(payload.publicKey);
 		console.log(chunk, payload);
-		const dataObject = new Map<string | number, CipherText | PlainText>();
+
+		// 3. Populate map with the encrypted data and encoded plaintext values.
+		const operandsAndResultsMap = new Map<
+			string | number,
+			CipherText | PlainText
+		>();
 		const columnsData = JSON.parse(chunk.columnsData) as Record<
 			string,
 			string
@@ -61,7 +69,7 @@ class BreadwinnerWorker {
 		Object.entries(columnsData).forEach(([field, data]) => {
 			const cipherText = FHEModule.seal!.CipherText();
 			cipherText.load(FHEModule.context!, data);
-			dataObject.set(`d${field}`, cipherText);
+			operandsAndResultsMap.set(`d${field}`, cipherText);
 		});
 
 		parsedJSONSchema.operations.forEach((operation, operationIndex) => {
@@ -70,11 +78,12 @@ class BreadwinnerWorker {
 					const plainText = FHEModule.encode(
 						new Array(chunk.length).fill(operand.plaintextValue)
 					);
-					dataObject.set(`p${operationIndex}`, plainText);
+					operandsAndResultsMap.set(`p${operationIndex}`, plainText);
 				}
 			});
 		});
 
+		// 4. Load specialized keys.
 		const galoisKeys = FHEModule.seal!.GaloisKeys();
 
 		if (payload.galoisKeys) {
@@ -87,6 +96,7 @@ class BreadwinnerWorker {
 			relinKeys.load(FHEModule.context!, payload.relinKeys);
 		}
 
+		// 5. Evaluate operations and store their results.
 		const evaluator = FHEModule.seal?.Evaluator(FHEModule.context!);
 
 		if (evaluator) {
@@ -96,53 +106,59 @@ class BreadwinnerWorker {
 			] of parsedJSONSchema.operations.entries()) {
 				switch (operation.type) {
 					case OperationType.ADD: {
-						dataObject.set(
+						operandsAndResultsMap.set(
 							index,
 							add(
 								evaluator,
 								galoisKeys,
 								...operation.operands.map((operand) => ({
 									type: operand.type,
-									data: dataObject.get(operand.field)!,
+									data: operandsAndResultsMap.get(
+										operand.field
+									)!,
 								}))
 							)
 						);
 						break;
 					}
 					case OperationType.SUBTRACT: {
-						dataObject.set(
+						operandsAndResultsMap.set(
 							index,
 							subtract(
 								evaluator,
 								...operation.operands.map((operand) => ({
 									type: operand.type,
-									data: dataObject.get(operand.field)!,
+									data: operandsAndResultsMap.get(
+										operand.field
+									)!,
 								}))
 							)
 						);
 						break;
 					}
 					case OperationType.MULTIPLY: {
-						dataObject.set(
+						operandsAndResultsMap.set(
 							index,
 							multiply(
 								evaluator,
 								relinKeys,
 								...operation.operands.map((operand) => ({
 									type: operand.type,
-									data: dataObject.get(operand.field)!,
+									data: operandsAndResultsMap.get(
+										operand.field
+									)!,
 								}))
 							)
 						);
 						break;
 					}
 					case OperationType.EXPONENTIATION: {
-						dataObject.set(
+						operandsAndResultsMap.set(
 							index,
 							exponentiate(
 								evaluator,
 								relinKeys,
-								dataObject.get(
+								operandsAndResultsMap.get(
 									operation.operands[0].field
 								)! as CipherText,
 								operation.operands[1].plaintextValue as number
@@ -156,15 +172,15 @@ class BreadwinnerWorker {
 			throw new Error("Evaluator not available.");
 		}
 
-		const result = dataObject
+		// 6. Extract the last operation's result, to submit it to the server.
+		const result = operandsAndResultsMap
 			.get(parsedJSONSchema.operations.length - 1)!
 			.save();
 
-		// Perform cleanup, deallocating any memory.
-		dataObject.forEach((value) => {
+		// 7. Perform cleanup, deallocating any memory.
+		operandsAndResultsMap.forEach((value) => {
 			value.delete();
 		});
-
 		FHEModule.deallocate();
 
 		return result;
