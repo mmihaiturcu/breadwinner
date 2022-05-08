@@ -53,7 +53,6 @@ export interface OperationDTO {
 }
 
 export interface JSONSchema {
-	totalDataLength: number;
 	schemeType: SchemeType;
 	operations: OperationDTO[];
 }
