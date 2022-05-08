@@ -1,4 +1,4 @@
-export enum Operations {
+export enum OperationType {
 	ADD,
 	SUBTRACT,
 	MULTIPLY,

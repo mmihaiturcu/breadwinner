@@ -8,7 +8,7 @@ import { CipherText } from "node-seal/implementation/cipher-text";
 import { PlainText } from "node-seal/implementation/plain-text";
 import { REWARD_TIMEOUT_MS } from "./constants.js";
 import FHEModule from "./FHEModule.js";
-import { Operations } from "./Operations.js";
+import { OperationType } from "./OperationType.js";
 import { add, subtract, multiply, exponentiate } from "./OperationsCalculator";
 import { WebsocketEventTypes } from "./WebsocketEventTypes.js";
 
@@ -94,8 +94,8 @@ class BreadwinnerWorker {
 				index,
 				operation,
 			] of parsedJSONSchema.operations.entries()) {
-				switch (operation.name) {
-					case Operations.ADD: {
+				switch (operation.type) {
+					case OperationType.ADD: {
 						dataObject.set(
 							index,
 							add(
@@ -109,7 +109,7 @@ class BreadwinnerWorker {
 						);
 						break;
 					}
-					case Operations.SUBTRACT: {
+					case OperationType.SUBTRACT: {
 						dataObject.set(
 							index,
 							subtract(
@@ -122,7 +122,7 @@ class BreadwinnerWorker {
 						);
 						break;
 					}
-					case Operations.MULTIPLY: {
+					case OperationType.MULTIPLY: {
 						dataObject.set(
 							index,
 							multiply(
@@ -136,7 +136,7 @@ class BreadwinnerWorker {
 						);
 						break;
 					}
-					case Operations.EXPONENTIATION: {
+					case OperationType.EXPONENTIATION: {
 						dataObject.set(
 							index,
 							exponentiate(

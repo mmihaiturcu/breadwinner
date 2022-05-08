@@ -1,13 +1,12 @@
 export { OperandTypes } from "./src/OperandTypes";
-export { Operations } from "./src/Operations";
-
+export { OperationType } from "./src/OperationType";
 import BreadwinnerModule from "./src/BreadwinnerModule";
 import FHEModule from "./src/FHEModule";
 
 import { CipherText } from "node-seal/implementation/cipher-text";
 import { PlainText } from "node-seal/implementation/plain-text";
 import { OperandTypes } from "./src/OperandTypes";
-import { Operations } from "./src/Operations";
+import { OperationType } from "./src/OperationType";
 
 export enum SchemeType {
 	BGV = "BGV",
@@ -47,7 +46,7 @@ export interface CalculatorOperand {
 	data: BreadwinnerCipherText | BreadwinnerPlainText;
 }
 export interface OperationDTO {
-	name: Operations;
+	type: OperationType;
 	operands: Operand[];
 	resultType: OperandTypes;
 }
