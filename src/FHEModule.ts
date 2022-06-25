@@ -17,30 +17,24 @@ import { PlainText } from "node-seal/implementation/plain-text";
 
 export class FHEModule {
 	public static instance: FHEModule;
-	public seal: null | SEALLibrary;
-	public context: null | Context;
-	public schemeType: null | SchemeType;
-	public encoder: null | BatchEncoder | CKKSEncoder;
-	public encryptor: null | Encryptor;
-	public decryptor: null | Decryptor;
-	public keyGenerator: null | KeyGenerator;
-	public publicKey: null | PublicKey;
-	public privateKey: null | SecretKey;
-	public galoisKeys: null | GaloisKeys;
-	public relinKeys: null | RelinKeys;
+	public seal?: SEALLibrary;
+	public context?: Context;
+	public schemeType?: SchemeType;
+	public encoder?: BatchEncoder | CKKSEncoder;
+	public encryptor?: Encryptor;
+	public decryptor?: Decryptor;
+	public keyGenerator?: KeyGenerator;
+	public publicKey?: PublicKey;
+	public privateKey?: SecretKey;
+	public galoisKeys?: GaloisKeys;
+	public relinKeys?: RelinKeys;
 
-	private constructor() {
-		this.seal = null;
-		this.context = null;
-		this.schemeType = null;
-		this.encoder = null;
-		this.encryptor = null;
-		this.decryptor = null;
-		this.keyGenerator = null;
-		this.publicKey = null;
-		this.privateKey = null;
-		this.galoisKeys = null;
-		this.relinKeys = null;
+	public static getInstance(): FHEModule {
+		if (!this.instance) {
+			this.instance = new FHEModule();
+		}
+
+		return this.instance;
 	}
 
 	async initFHEContext(schemeType: SchemeType): Promise<void> {
@@ -92,7 +86,7 @@ export class FHEModule {
 	getSealSchemeType() {
 		if (this.seal && this.schemeType) {
 			return this.schemeType === SchemeType.BGV
-				? this.seal.SchemeType.bgv
+				? this.seal.SchemeType.bfv
 				: this.seal.SchemeType.ckks;
 		} else {
 			throw new Error("FHE Module has not been initialized.");
@@ -267,14 +261,6 @@ export class FHEModule {
 		this.privateKey?.delete();
 		this.galoisKeys?.delete();
 		this.relinKeys?.delete();
-	}
-
-	public static getInstance(): FHEModule {
-		if (!this.instance) {
-			this.instance = new FHEModule();
-		}
-
-		return this.instance;
 	}
 }
 
